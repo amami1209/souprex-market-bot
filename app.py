@@ -1,4 +1,6 @@
 import streamlit as st
+import pandas as pd
+from collectors.yahoo import fetch_yahoo_items
 
 st.set_page_config(page_title="Souprex Market Bot (Demo)", layout="wide")
 
@@ -16,11 +18,25 @@ if run:
         st.warning("キーワードを入力してください")
     else:
         with st.spinner("市場データを取得中..."):
-            # TODO: ここにSouprexの取得/分析を差し込む
-            result = {"keyword": keyword, "count": 42, "median_price": 29800}
+            items = fetch_yahoo_items(keyword, limit=30)
+
+        df = pd.DataFrame([{"title": x.title, "price": x.price, "url": x.url} for x in items])
 
         st.success("取得完了")
+
         col1, col2 = st.columns(2)
-        col1.metric("件数", result["count"])
-        col2.metric("中央値", f"¥{result['median_price']:,}")
+        col1.metric("件数", len(df))
+        col2.metric("中央値", f"¥{int(df['price'].median()):,}")
+
+        st.subheader("📋 取得結果（デモ）")
+        st.dataframe(df, use_container_width=True)
+
+        csv = df.to_csv(index=False).encode("utf-8-sig")
+        st.download_button(
+            label="CSVダウンロード",
+            data=csv,
+            file_name=f"yahoo_{keyword}.csv",
+            mime="text/csv",
+        )
+
         st.info("※ 本デモはヤフオクのみ対応。eBayは採用後に統合予定です。")
